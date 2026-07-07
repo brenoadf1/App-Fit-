@@ -476,7 +476,7 @@ export default function App() {
 
         {/* Action clear logs footer option */}
         <footer className="mt-12 text-center pb-12">
-          <p className="text-xs text-slate-600 font-mono">Ficha de Treino Premium • Desenvolvido com React</p>
+          <p className="text-xs text-slate-600 font-mono">Allenamento Rayssa • Desenvolvido com React</p>
           <button 
             onClick={() => {
               if (confirm("Deseja realmente limpar todo o histórico de cargas e progresso?")) {
