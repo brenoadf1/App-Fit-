@@ -1,4 +1,4 @@
-export function generateSingleFileHtml(): string {
+export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber'): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -358,6 +358,42 @@ export function generateSingleFileHtml(): string {
       const [charges, setCharges] = useState({});
       const [completedSeries, setCompletedSeries] = useState({});
       
+      // Theme State & Toggle
+      const [theme, setTheme] = useState(localStorage.getItem('glowfit_theme') || '${initialTheme}');
+
+      const toggleTheme = () => {
+        const newTheme = theme === 'amber' ? 'pink' : 'amber';
+        setTheme(newTheme);
+        localStorage.setItem('glowfit_theme', newTheme);
+      };
+
+      const c = (cls) => {
+        if (theme === 'pink') {
+          return cls
+            .replace(/amber-/g, 'pink-')
+            .replace(/rgba\\(245,158,11/g, 'rgba(236,72,153')
+            .replace(/selection:bg-amber-500/g, 'selection:bg-pink-500')
+            .replace(/shadow-amber-500/g, 'shadow-pink-500')
+            .replace(/text-amber-500/g, 'text-pink-500')
+            .replace(/bg-amber-500/g, 'bg-pink-500')
+            .replace(/border-amber-500/g, 'border-pink-500')
+            .replace(/border-amber-400/g, 'border-pink-400')
+            .replace(/from-amber-500/g, 'from-pink-500');
+        }
+        return cls;
+      };
+
+      // Document selection theme syncing
+      useEffect(() => {
+        if (theme === 'pink') {
+          document.body.classList.remove('selection:bg-amber-500', 'selection:text-slate-950');
+          document.body.classList.add('selection:bg-pink-500', 'selection:text-slate-950');
+        } else {
+          document.body.classList.remove('selection:bg-pink-500', 'selection:text-slate-950');
+          document.body.classList.add('selection:bg-amber-500', 'selection:text-slate-950');
+        }
+      }, [theme]);
+      
       // Timer States
       const [timerActive, setTimerActive] = useState(false);
       const [timerLeft, setTimerLeft] = useState(60);
@@ -490,26 +526,37 @@ export function generateSingleFileHtml(): string {
       const { total: totalSeriesCount, completed: completedSeriesCount, percent: progress } = getWorkoutStats();
 
       return (
-        <div class="max-w-md mx-auto px-4 py-6 select-none font-sans">
+        <div class={c("max-w-md mx-auto px-4 py-6 select-none font-sans")}>
           
           {/* Header App with JD-style Initials */}
           <header class="mb-6 flex flex-col gap-1">
             <div class="flex items-center justify-between bg-slate-900/50 backdrop-blur-md rounded-2xl p-3 border border-slate-800">
               <div class="flex items-center gap-2">
-                <div class="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-500">
+                <div class={c("p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-500")}>
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6.343 17.657A8 8 0 0017.657 6.343M6.343 17.657l9.9-9.9M6.343 17.657l-1.414 1.414m12.728-12.728L19 4.93M16.243 16.243l1.414-1.414M3.757 3.757l1.414 1.414" />
                   </svg>
                 </div>
                 <div>
-                  <span class="text-[10px] font-mono tracking-widest text-amber-500 uppercase font-bold block">Performance App</span>
+                  <span class={c("text-[10px] font-mono tracking-widest text-amber-500 uppercase font-bold block")}>Performance App</span>
                   <h1 class="text-xl font-bold tracking-tight text-white">Ficha de Treino</h1>
                 </div>
               </div>
 
               <div class="flex items-center gap-2">
+                {/* Theme Selector Button */}
+                <button
+                  onClick={toggleTheme}
+                  class={c("p-2 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20 active:scale-95 transition-all flex items-center justify-center cursor-pointer")}
+                  title={theme === 'pink' ? 'Mudar para Modo Amber' : 'Mudar para Mundo Rosa'}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </button>
+
                 <div class="w-9 h-9 rounded-full border-2 border-slate-700 flex items-center justify-center overflow-hidden bg-slate-800" title="brenoadf1@gmail.com">
-                  <div class="text-amber-500 font-bold text-xs">RAY</div>
+                  <div class={c("text-amber-500 font-bold text-xs")}>RAY</div>
                 </div>
               </div>
             </div>
@@ -530,11 +577,11 @@ export function generateSingleFileHtml(): string {
                     setCurrentDay(d.day);
                     setExpandedExercise(null);
                   }}
-                  class={\`relative flex-1 py-2 px-1 text-center rounded-full transition-all duration-300 cursor-pointer select-none outline-none focus:outline-none \${
+                  class={c(\`relative flex-1 py-2 px-1 text-center rounded-full transition-all duration-300 cursor-pointer select-none outline-none focus:outline-none \${
                     isActive
                       ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 z-10'
                       : 'text-slate-400 hover:text-slate-200 bg-transparent'
-                  }\`}
+                  }\`)}
                 >
                   <div class="flex flex-col items-center justify-center">
                     <span class={\`text-xs md:text-sm font-bold leading-tight \${isActive ? 'text-slate-950' : 'text-slate-200'}\`}>
@@ -553,14 +600,14 @@ export function generateSingleFileHtml(): string {
           <section class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/80 rounded-2xl p-4 mb-6 shadow-md">
             <div class="flex justify-between items-center mb-2.5">
               <div class="flex flex-col">
-                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Progresso do Dia</span>
+                <span class={c("text-[10px] font-bold text-amber-500 uppercase tracking-widest")}>Progresso do Dia</span>
                 <h2 class="text-sm font-bold text-slate-100">{activeWorkout.focus} • {progress}% concluído</h2>
               </div>
               <span class="text-xs font-mono font-bold text-slate-400">{completedSeriesCount}/{totalSeriesCount} séries</span>
             </div>
             <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
               <div 
-                class="bg-amber-500 h-full transition-all duration-500"
+                class={c("bg-amber-500 h-full transition-all duration-500")}
                 style={{ width: \`\${progress}%\` }}
               ></div>
             </div>
@@ -580,13 +627,13 @@ export function generateSingleFileHtml(): string {
               return (
                 <div
                   key={ex.id}
-                  class={\`rounded-2xl overflow-hidden transition-all duration-300 \${
+                  class={c(\`rounded-2xl overflow-hidden transition-all duration-300 \${
                     isExpanded 
                       ? 'bg-slate-800 border-2 border-amber-500/50 shadow-lg shadow-amber-500/10' 
                       : isCompleted
                       ? 'bg-slate-800/40 border border-slate-700/60 opacity-60'
                       : 'bg-slate-850/70 border border-slate-750/80 hover:border-slate-700/80'
-                  }\`}
+                  }\`)}
                 >
                   {/* Card Main Bar (Accordion header) */}
                   <div
@@ -595,13 +642,13 @@ export function generateSingleFileHtml(): string {
                   >
                     <div class="flex-1 pr-3">
                       <div class="flex items-center gap-2 mb-1">
-                        <span class={\`text-[9px] font-bold uppercase tracking-wider \${
+                        <span class={c(\`text-[9px] font-bold uppercase tracking-wider \${
                           ex.type === 'mobility'
                             ? 'text-indigo-400'
                             : ex.type === 'cardio'
                             ? 'text-emerald-400'
                             : 'text-amber-500'
-                        }\`}>
+                        }\`)}>
                           {ex.type === 'mobility' ? 'Mobilidade' : ex.type === 'cardio' ? 'Cardio' : \`\${ex.series} × \${ex.reps}\`}
                         </span>
                         {isCompleted && (
@@ -619,14 +666,14 @@ export function generateSingleFileHtml(): string {
                       
                       {/* Weight references when closed */}
                       {hasCarga && !isExpanded && (
-                        <div class="mt-1 text-xs text-amber-500 font-mono font-bold flex items-center gap-1">
+                        <div class={c("mt-1 text-xs text-amber-500 font-mono font-bold flex items-center gap-1")}>
                           <span>🏋️ {charges[ex.id]} kg</span>
                         </div>
                       )}
                     </div>
 
                     <div class="text-slate-500 p-1">
-                      <div class={\`transition-transform duration-200 \${isExpanded ? 'rotate-180 text-amber-500' : 'text-slate-400'}\`}>
+                      <div class={c(\`transition-transform duration-200 \${isExpanded ? 'rotate-180 text-amber-500' : 'text-slate-400'}\`)}>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -639,7 +686,7 @@ export function generateSingleFileHtml(): string {
                     <div class="px-4 pb-5 bg-slate-900/30 space-y-4 overflow-hidden border-t border-slate-700/50 pt-4">
                       {/* Tip box */}
                       <p class="text-[11px] text-slate-400 leading-relaxed">
-                        <strong class="text-amber-500 font-bold">Dica: </strong>
+                        <strong class={c("text-amber-500 font-bold")}>Dica: </strong>
                         {ex.tip}
                       </p>
 
@@ -664,11 +711,11 @@ export function generateSingleFileHtml(): string {
                           {ex.type === 'mobility' || ex.type === 'cardio' ? (
                             <button
                               onClick={() => handleToggleSeries(ex.id, 0, 1)}
-                              class={\`px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 cursor-pointer uppercase \${
+                              class={c(\`px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 cursor-pointer uppercase \${
                                 exSeries[0]
                                   ? 'bg-amber-500 text-slate-950 border-amber-400'
                                   : 'border-slate-600 text-slate-400 bg-transparent'
-                              }\`}
+                              }\`)}
                             >
                               {exSeries[0] ? '✓ Feito' : 'Concluir'}
                             </button>
@@ -680,11 +727,11 @@ export function generateSingleFileHtml(): string {
                                   <button
                                     key={sIdx}
                                     onClick={() => handleToggleSeries(ex.id, sIdx, ex.series)}
-                                    class={\`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold transition-all duration-300 cursor-pointer \${
+                                    class={c(\`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold transition-all duration-300 cursor-pointer \${
                                       isChecked
                                         ? 'border-amber-500 text-amber-500 bg-amber-500/10'
                                         : 'border-slate-650 text-slate-500 bg-transparent hover:border-slate-500'
-                                    }\`}
+                                    }\`)}
                                   >
                                     {sIdx + 1}
                                   </button>
@@ -715,7 +762,7 @@ export function generateSingleFileHtml(): string {
                   setCompletedSeries({});
                 }
               }}
-              class="text-[10px] font-mono text-slate-600 hover:text-amber-500 underline mt-2 transition-colors"
+              class={c("text-[10px] font-mono text-slate-600 hover:text-amber-500 underline mt-2 transition-colors")}
             >
               Limpar histórico do LocalStorage
             </button>
@@ -727,10 +774,10 @@ export function generateSingleFileHtml(): string {
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="flex h-2.5 w-2.5 relative">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    <span class={c("animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75")}></span>
+                    <span class={c("relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500")}></span>
                   </span>
-                  <span class="text-xs font-mono font-semibold text-amber-500 uppercase tracking-wider">Tempo de Descanso</span>
+                  <span class={c("text-xs font-mono font-semibold text-amber-500 uppercase tracking-wider")}>Tempo de Descanso</span>
                 </div>
                 <div class="text-2xl font-mono font-bold text-white tracking-wider flex items-baseline">
                   {Math.floor(timerLeft / 60)}:{(timerLeft % 60).toString().padStart(2, '0')}
@@ -741,7 +788,7 @@ export function generateSingleFileHtml(): string {
               {/* Progress Bar in timer */}
               <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                 <div 
-                  class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full transition-all duration-1000"
+                  class={c("bg-gradient-to-r from-amber-500 to-yellow-400 h-full transition-all duration-1000")}
                   style={{ width: \`\${(timerLeft / timerTotal) * 100}%\` }}
                 ></div>
               </div>
@@ -756,7 +803,7 @@ export function generateSingleFileHtml(): string {
                 </button>
                 <button 
                   onClick={handleSkipTimer}
-                  class="bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-transform shadow-lg shadow-amber-500/15"
+                  class={c("bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-transform shadow-lg shadow-amber-500/15")}
                 >
                   ⏩ Pular
                 </button>
