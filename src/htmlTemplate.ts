@@ -362,6 +362,23 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       const [lastCompletedWorkoutDay, setLastCompletedWorkoutDay] = useState(
         localStorage.getItem('glowfit_last_completed_day') || ''
       );
+      const [isResetConfirming, setIsResetConfirming] = useState(false);
+
+      const handleResetAllWorkouts = () => {
+        if (!isResetConfirming) {
+          setIsResetConfirming(true);
+          setTimeout(() => setIsResetConfirming(false), 4000);
+          return;
+        }
+        setCompletedSeries({});
+        setCharges({});
+        setLastCompletedWorkoutDay('');
+        setShowTaPagoModal(false);
+        localStorage.removeItem('glowfit_series');
+        localStorage.removeItem('glowfit_charges');
+        localStorage.removeItem('glowfit_last_completed_day');
+        setIsResetConfirming(false);
+      };
       
       // Theme State & Toggle
       const [theme, setTheme] = useState(localStorage.getItem('glowfit_theme') || '${initialTheme}');
@@ -679,7 +696,23 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                 <span class={c("text-[10px] font-bold text-amber-500 uppercase tracking-widest")}>Progresso do Dia</span>
                 <h2 class="text-sm font-bold text-slate-100">{activeWorkout.focus} • {progress}% concluído</h2>
               </div>
-              <span class="text-xs font-mono font-bold text-slate-400">{completedSeriesCount}/{totalSeriesCount} séries</span>
+              <div class="flex items-center gap-3">
+                <button 
+                  onClick={handleResetAllWorkouts}
+                  class={c(\`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer active:scale-95 \${
+                    isResetConfirming 
+                      ? 'bg-red-500/20 border-red-500/40 text-red-400' 
+                      : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }\`)}
+                  title="Resetar todas as atividades e cargas"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>{isResetConfirming ? 'Certeza?' : 'Zerar'}</span>
+                </button>
+                <span class="text-xs font-mono font-bold text-slate-400">{completedSeriesCount}/{totalSeriesCount} séries</span>
+              </div>
             </div>
             <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
               <div 

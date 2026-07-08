@@ -69,6 +69,24 @@ export default function App() {
   const [lastCompletedWorkoutDay, setLastCompletedWorkoutDay] = useState<string>(() => {
     return localStorage.getItem('glowfit_last_completed_day') || '';
   });
+  const [isResetConfirming, setIsResetConfirming] = useState<boolean>(false);
+
+  const handleResetAllWorkouts = () => {
+    if (!isResetConfirming) {
+      setIsResetConfirming(true);
+      setTimeout(() => setIsResetConfirming(false), 4000);
+      return;
+    }
+    // Perform full reset of all activities, loads and status
+    setCompletedSeries({});
+    setCharges({});
+    setLastCompletedWorkoutDay('');
+    setShowTaPagoModal(false);
+    localStorage.removeItem('glowfit_series');
+    localStorage.removeItem('glowfit_charges');
+    localStorage.removeItem('glowfit_last_completed_day');
+    setIsResetConfirming(false);
+  };
 
   // Load from localStorage
   useEffect(() => {
@@ -403,7 +421,21 @@ export default function App() {
               <span className={c("text-[10px] font-bold text-amber-500 uppercase tracking-widest")}>Progresso do Dia</span>
               <h2 className="text-sm font-bold text-slate-100">{activeWorkout.focus} • {progress}% concluído</h2>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-400">{completedSeriesCount}/{totalSeriesCount} séries</span>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={handleResetAllWorkouts}
+                className={c(`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer active:scale-95 ${
+                  isResetConfirming 
+                    ? 'bg-red-500/20 border-red-500/40 text-red-400' 
+                    : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`)}
+                title="Resetar todas as atividades e cargas"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>{isResetConfirming ? 'Certeza?' : 'Zerar'}</span>
+              </button>
+              <span className="text-xs font-mono font-bold text-slate-400">{completedSeriesCount}/{totalSeriesCount} séries</span>
+            </div>
           </div>
           <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
             <motion.div 
