@@ -64,6 +64,12 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
+  // State to track if the "TÁ PAGO" modal should be shown
+  const [showTaPagoModal, setShowTaPagoModal] = useState<boolean>(false);
+  const [lastCompletedWorkoutDay, setLastCompletedWorkoutDay] = useState<string>(() => {
+    return localStorage.getItem('glowfit_last_completed_day') || '';
+  });
+
   // Load from localStorage
   useEffect(() => {
     const savedCharges = localStorage.getItem('glowfit_charges');
@@ -279,6 +285,19 @@ export default function App() {
 
   const { total: totalSeriesCount, completed: completedSeriesCount, percent: progress } = getWorkoutStats();
 
+  // Effect to automatically open the "TÁ PAGO" modal when reaching 100% progress
+  useEffect(() => {
+    if (progress === 100 && lastCompletedWorkoutDay !== currentDay) {
+      setShowTaPagoModal(true);
+      setLastCompletedWorkoutDay(currentDay);
+      localStorage.setItem('glowfit_last_completed_day', currentDay);
+    } else if (progress < 100 && lastCompletedWorkoutDay === currentDay) {
+      // If they uncheck a series and progress falls below 100%, reset the tracked completed day so it can trigger again
+      setLastCompletedWorkoutDay('');
+      localStorage.removeItem('glowfit_last_completed_day');
+    }
+  }, [progress, currentDay, lastCompletedWorkoutDay]);
+
   // Export & Download Single HTML File
   const handleDownloadHtml = () => {
     const htmlContent = generateSingleFileHtml(theme);
@@ -461,6 +480,12 @@ export default function App() {
                             <span>⏱️ {charges[ex.id] || ex.reps.replace(' min', '')} min • {getCardioModalityLabel(cardioModalities[ex.id] || 'esteira')}</span>
                           </div>
                         )
+                      ) : ex.type === 'mobility' ? (
+                        !isExpanded && (
+                          <div className={c("mt-1 text-xs text-teal-400 font-mono font-bold flex items-center gap-1.5")}>
+                            <span>⏱️ {charges[ex.id] || ex.reps.replace(' min', '')} min</span>
+                          </div>
+                        )
                       ) : (
                         hasCarga && !isExpanded && (
                           <div className={c("mt-1 text-xs text-amber-500 font-mono font-bold flex items-center gap-1")}>
@@ -532,12 +557,12 @@ export default function App() {
                           {/* Carga Weight or Cardio Duration input box */}
                           <div className="flex-1 bg-slate-900 rounded-lg p-2 border border-slate-700 flex flex-col">
                             <label className="text-[9px] uppercase text-slate-500 font-bold">
-                              {ex.type === 'cardio' ? 'Tempo (min)' : 'Carga (kg)'}
+                              {(ex.type === 'cardio' || ex.type === 'mobility') ? 'Tempo (min)' : 'Carga (kg)'}
                             </label>
                             <input 
                               type="text" 
                               inputMode="decimal"
-                              placeholder={ex.type === 'cardio' ? ex.reps.replace(' min', '') : '--'} 
+                              placeholder={(ex.type === 'cardio' || ex.type === 'mobility') ? ex.reps.replace(' min', '') : '--'} 
                               value={charges[ex.id] || ''} 
                               onChange={(e) => handleChargeChange(ex.id, e.target.value)}
                               className="bg-transparent text-sm font-bold text-white focus:outline-none w-full placeholder-slate-700"
@@ -725,6 +750,63 @@ export default function App() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* "TÁ PAGO" Modal Popup */}
+      <AnimatePresence>
+        {showTaPagoModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowTaPagoModal(false)}
+            className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer select-none"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ type: "spring", damping: 15, stiffness: 180 }}
+              className={c("bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.25)] relative overflow-hidden")}
+            >
+              {/* Decorative radial ambient glow */}
+              <div className={c("absolute -inset-10 bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-500/5 rounded-full blur-3xl pointer-events-none")}></div>
+
+              <div className="relative z-10 flex flex-col items-center justify-center space-y-6">
+                {/* Floating bounce-effect emoji */}
+                <motion.div
+                  animate={{ 
+                    y: [0, -12, 0],
+                    scale: [1, 1.1, 1]
+                  }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    duration: 2, 
+                    ease: "easeInOut" 
+                  }}
+                  className="text-7xl drop-shadow-lg"
+                >
+                  💪🏼
+                </motion.div>
+
+                <div className="space-y-2">
+                  <h2 className={c("text-4xl font-black tracking-widest text-amber-500 font-sans uppercase animate-pulse")}>
+                    TÁ PAGO
+                  </h2>
+                  <p className="text-slate-400 text-sm font-medium tracking-wide">
+                    Treino de hoje concluído com sucesso!
+                  </p>
+                </div>
+
+                <div className="pt-4">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-800 text-xs text-slate-400 border border-slate-700/60 font-semibold animate-pulse">
+                    Toque em qualquer lugar para fechar
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

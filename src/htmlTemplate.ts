@@ -358,6 +358,10 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       const [charges, setCharges] = useState({});
       const [completedSeries, setCompletedSeries] = useState({});
       const [cardioModalities, setCardioModalities] = useState({});
+      const [showTaPagoModal, setShowTaPagoModal] = useState(false);
+      const [lastCompletedWorkoutDay, setLastCompletedWorkoutDay] = useState(
+        localStorage.getItem('glowfit_last_completed_day') || ''
+      );
       
       // Theme State & Toggle
       const [theme, setTheme] = useState(localStorage.getItem('glowfit_theme') || '${initialTheme}');
@@ -584,6 +588,19 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
 
       const { total: totalSeriesCount, completed: completedSeriesCount, percent: progress } = getWorkoutStats();
 
+      // Effect to automatically open the "TÁ PAGO" modal when reaching 100% progress
+      useEffect(() => {
+        if (progress === 100 && lastCompletedWorkoutDay !== currentDay) {
+          setShowTaPagoModal(true);
+          setLastCompletedWorkoutDay(currentDay);
+          localStorage.setItem('glowfit_last_completed_day', currentDay);
+        } else if (progress < 100 && lastCompletedWorkoutDay === currentDay) {
+          // If they uncheck a series and progress falls below 100%, reset the tracked completed day so it can trigger again
+          setLastCompletedWorkoutDay('');
+          localStorage.removeItem('glowfit_last_completed_day');
+        }
+      }, [progress, currentDay, lastCompletedWorkoutDay]);
+
       return (
         <div class={c("max-w-md mx-auto px-4 py-6 select-none font-sans")}>
           
@@ -730,6 +747,12 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                             <span>⏱️ {charges[ex.id] || ex.reps.replace(' min', '')} min • {getCardioModalityLabel(cardioModalities[ex.id] || 'esteira')}</span>
                           </div>
                         )
+                      ) : ex.type === 'mobility' ? (
+                        !isExpanded && (
+                          <div class={c("mt-1 text-xs text-teal-400 font-mono font-bold flex items-center gap-1.5")}>
+                            <span>⏱️ {charges[ex.id] || ex.reps.replace(' min', '')} min</span>
+                          </div>
+                        )
                       ) : (
                         hasCarga && !isExpanded && (
                           <div class={c("mt-1 text-xs text-amber-500 font-mono font-bold flex items-center gap-1")}>
@@ -793,12 +816,12 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                           {/* Carga Weight or Cardio Duration input box */}
                           <div class="flex-1 bg-slate-900 rounded-lg p-2 border border-slate-700 flex flex-col">
                             <label class="text-[9px] uppercase text-slate-500 font-bold">
-                              {ex.type === 'cardio' ? 'Tempo (min)' : 'Carga (kg)'}
+                              {(ex.type === 'cardio' || ex.type === 'mobility') ? 'Tempo (min)' : 'Carga (kg)'}
                             </label>
                             <input 
                               type="text" 
                               inputMode="decimal"
-                              placeholder={ex.type === 'cardio' ? ex.reps.replace(' min', '') : '--'} 
+                              placeholder={(ex.type === 'cardio' || ex.type === 'mobility') ? ex.reps.replace(' min', '') : '--'} 
                               value={charges[ex.id] || ''} 
                               onChange={(e) => handleChargeChange(ex.id, e.target.value)}
                               class="bg-transparent text-sm font-bold text-white focus:outline-none w-full placeholder-slate-700"
@@ -906,6 +929,43 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                 >
                   ⏩ Pular
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* "TÁ PAGO" Modal Popup */}
+          {showTaPagoModal && (
+            <div 
+              onClick={() => setShowTaPagoModal(false)}
+              class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer select-none"
+            >
+              <div 
+                class={c("bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.25)] relative overflow-hidden")}
+              >
+                {/* Decorative radial ambient glow */}
+                <div class={c("absolute -inset-10 bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-500/5 rounded-full blur-3xl pointer-events-none")}></div>
+
+                <div class="relative z-10 flex flex-col items-center justify-center gap-6">
+                  {/* Bouncing emoji */}
+                  <div class="text-7xl drop-shadow-lg animate-bounce">
+                    💪🏼
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <h2 class={c("text-4xl font-black tracking-widest text-amber-500 font-sans uppercase")}>
+                      TÁ PAGO
+                    </h2>
+                    <p class="text-slate-400 text-sm font-medium tracking-wide">
+                      Treino de hoje concluído com sucesso!
+                    </p>
+                  </div>
+
+                  <div class="pt-4">
+                    <span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-800 text-xs text-slate-400 border border-slate-700/60 font-semibold">
+                      Toque em qualquer lugar para fechar
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
