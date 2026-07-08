@@ -357,6 +357,7 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       const [expandedExercise, setExpandedExercise] = useState(null);
       const [charges, setCharges] = useState({});
       const [completedSeries, setCompletedSeries] = useState({});
+      const [cardioModalities, setCardioModalities] = useState({});
       
       // Theme State & Toggle
       const [theme, setTheme] = useState(localStorage.getItem('glowfit_theme') || '${initialTheme}');
@@ -394,10 +395,11 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
         }
       }, [theme]);
       
-      // Timer States
+      // Timer States supporting Background Timer
       const [timerActive, setTimerActive] = useState(false);
       const [timerLeft, setTimerLeft] = useState(60);
       const [timerTotal, setTimerTotal] = useState(60);
+      const [timerEndTime, setTimerEndTime] = useState(null);
 
       // Audio Beep Ref
       const playBeep = () => {
@@ -422,25 +424,52 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       useEffect(() => {
         const savedCharges = localStorage.getItem('glowfit_charges');
         const savedSeries = localStorage.getItem('glowfit_series');
+        const savedModalities = localStorage.getItem('glowfit_cardio_modalities');
+        
         if (savedCharges) setCharges(JSON.parse(savedCharges));
         if (savedSeries) setCompletedSeries(JSON.parse(savedSeries));
+        if (savedModalities) setCardioModalities(JSON.parse(savedModalities));
+
+        // Background Timer loader
+        const savedEndTime = localStorage.getItem('glowfit_timer_endtime');
+        const savedTotal = localStorage.getItem('glowfit_timer_total');
+        if (savedEndTime && savedTotal) {
+          const endTime = parseInt(savedEndTime, 10);
+          const total = parseInt(savedTotal, 10);
+          const now = Date.now();
+          if (endTime > now) {
+            setTimerEndTime(endTime);
+            setTimerTotal(total);
+            setTimerLeft(Math.max(0, Math.round((endTime - now) / 1000)));
+            setTimerActive(true);
+          } else {
+            localStorage.removeItem('glowfit_timer_endtime');
+            localStorage.removeItem('glowfit_timer_total');
+          }
+        }
       }, []);
 
       // Rest Timer Logic
       useEffect(() => {
         let interval = null;
-        if (timerActive && timerLeft > 0) {
+        if (timerActive && timerEndTime !== null) {
           interval = setInterval(() => {
-            setTimerLeft(prev => prev - 1);
+            const now = Date.now();
+            const remaining = Math.max(0, Math.round((timerEndTime - now) / 1000));
+            setTimerLeft(remaining);
+            if (remaining === 0) {
+              playBeep();
+              setTimerActive(false);
+              setTimerEndTime(null);
+              localStorage.removeItem('glowfit_timer_endtime');
+              localStorage.removeItem('glowfit_timer_total');
+            }
           }, 1000);
-        } else if (timerActive && timerLeft === 0) {
-          playBeep();
-          setTimerActive(false);
         }
         return () => {
           if (interval) clearInterval(interval);
         };
-      }, [timerActive, timerLeft]);
+      }, [timerActive, timerEndTime]);
 
       const activeWorkout = WORKOUT_DAYS.find(d => d.day === currentDay) || WORKOUT_DAYS[0];
 
@@ -455,6 +484,25 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
         localStorage.setItem('glowfit_series', JSON.stringify(newSeries));
       };
 
+      const handleCardioModalityChange = (exerciseId, value) => {
+        const updated = {
+          ...cardioModalities,
+          [exerciseId]: value
+        };
+        setCardioModalities(updated);
+        localStorage.setItem('glowfit_cardio_modalities', JSON.stringify(updated));
+      };
+
+      const getCardioModalityLabel = (modId) => {
+        switch (modId) {
+          case 'esteira': return 'Esteira 🏃‍♀️';
+          case 'escada': return 'Escada 🧗‍♀️';
+          case 'bike': return 'Bicicleta 🚴‍♀️';
+          case 'corda': return 'Corda 🪢';
+          default: return 'Esteira 🏃‍♀️';
+        }
+      };
+
       // Handle Carga Change
       const handleChargeChange = (exerciseId, value) => {
         saveCharges({
@@ -467,7 +515,6 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       const handleToggleSeries = (exerciseId, seriesIndex, totalSeries) => {
         const currentSeriesState = completedSeries[exerciseId] || Array(totalSeries).fill(false);
         const nextState = [...currentSeriesState];
-        // If it's a mobility/cardio (0 or 1 series without standard checklist), handle appropriately
         nextState[seriesIndex] = !nextState[seriesIndex];
         
         const updated = {
@@ -483,19 +530,31 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       };
 
       const triggerRestTimer = (seconds) => {
+        const endTime = Date.now() + seconds * 1000;
+        setTimerEndTime(endTime);
         setTimerTotal(seconds);
         setTimerLeft(seconds);
         setTimerActive(true);
+        localStorage.setItem('glowfit_timer_endtime', endTime.toString());
+        localStorage.setItem('glowfit_timer_total', seconds.toString());
       };
 
       const handleAdd30s = () => {
-        setTimerLeft(prev => prev + 30);
+        if (!timerEndTime) return;
+        const newEndTime = timerEndTime + 30 * 1000;
+        setTimerEndTime(newEndTime);
         setTimerTotal(prev => prev + 30);
+        setTimerLeft(prev => prev + 30);
+        localStorage.setItem('glowfit_timer_endtime', newEndTime.toString());
+        localStorage.setItem('glowfit_timer_total', (timerTotal + 30).toString());
       };
 
       const handleSkipTimer = () => {
         setTimerActive(false);
         setTimerLeft(0);
+        setTimerEndTime(null);
+        localStorage.removeItem('glowfit_timer_endtime');
+        localStorage.removeItem('glowfit_timer_total');
       };
 
       // Calculate Workout Progress for the current active day
@@ -664,11 +723,19 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                         {ex.name}
                       </h3>
                       
-                      {/* Weight references when closed */}
-                      {hasCarga && !isExpanded && (
-                        <div class={c("mt-1 text-xs text-amber-500 font-mono font-bold flex items-center gap-1")}>
-                          <span>🏋️ {charges[ex.id]} kg</span>
-                        </div>
+                      {/* Weight or Cardio references when closed */}
+                      {ex.type === 'cardio' ? (
+                        !isExpanded && (
+                          <div class={c("mt-1 text-xs text-emerald-400 font-mono font-bold flex items-center gap-1.5")}>
+                            <span>⏱️ {charges[ex.id] || ex.reps.replace(' min', '')} min • {getCardioModalityLabel(cardioModalities[ex.id] || 'esteira')}</span>
+                          </div>
+                        )
+                      ) : (
+                        hasCarga && !isExpanded && (
+                          <div class={c("mt-1 text-xs text-amber-500 font-mono font-bold flex items-center gap-1")}>
+                            <span>🏋️ {charges[ex.id]} kg</span>
+                          </div>
+                        )
                       )}
                     </div>
 
@@ -690,57 +757,89 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                         {ex.tip}
                       </p>
 
-                      {/* Series checking & weight input forms */}
-                      <div class="flex items-center space-x-3">
-                        
-                        {/* Carga Weight input box */}
-                        <div class="flex-1 bg-slate-900 rounded-lg p-2 border border-slate-700 flex flex-col">
-                          <label class="text-[9px] uppercase text-slate-500 font-bold">Carga (kg)</label>
-                          <input 
-                            type="text" 
-                            pattern="[0-9]*"
-                            placeholder="--" 
-                            value={charges[ex.id] || ''} 
-                            onChange={(e) => handleChargeChange(ex.id, e.target.value)}
-                            class="bg-transparent text-sm font-bold text-white focus:outline-none w-full placeholder-slate-700"
-                          />
-                        </div>
-
-                        {/* Checklist circles counter for series */}
-                        <div class="flex space-x-1.5 items-center">
-                          {ex.type === 'mobility' || ex.type === 'cardio' ? (
-                            <button
-                              onClick={() => handleToggleSeries(ex.id, 0, 1)}
-                              class={c(\`px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 cursor-pointer uppercase \${
-                                exSeries[0]
-                                  ? 'bg-amber-500 text-slate-950 border-amber-400'
-                                  : 'border-slate-600 text-slate-400 bg-transparent'
-                              }\`)}
-                            >
-                              {exSeries[0] ? '✓ Feito' : 'Concluir'}
-                            </button>
-                          ) : (
-                            <div class="flex space-x-1.5">
-                              {Array.from({ length: ex.series }).map((_, sIdx) => {
-                                const isChecked = exSeries[sIdx] || false;
+                      {/* Series checking & weight/cardio inputs */}
+                      <div class="flex flex-col space-y-3">
+                        {/* Cardio Modality Selector */}
+                        {ex.type === 'cardio' && (
+                          <div class="bg-slate-950/40 rounded-xl p-2.5 border border-slate-800 flex flex-col space-y-1.5">
+                            <label class="text-[9px] uppercase text-slate-500 font-bold tracking-wider">Tipo de Cardio</label>
+                            <div class="grid grid-cols-2 gap-1.5">
+                              {[
+                                { id: 'esteira', label: 'Esteira 🏃‍♀️' },
+                                { id: 'escada', label: 'Escada 🧗‍♀️' },
+                                { id: 'bike', label: 'Bicicleta 🚴‍♀️' },
+                                { id: 'corda', label: 'Corda 🪢' }
+                              ].map(opt => {
+                                const isSelected = (cardioModalities[ex.id] || 'esteira') === opt.id;
                                 return (
                                   <button
-                                    key={sIdx}
-                                    onClick={() => handleToggleSeries(ex.id, sIdx, ex.series)}
-                                    class={c(\`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold transition-all duration-300 cursor-pointer \${
-                                      isChecked
-                                        ? 'border-amber-500 text-amber-500 bg-amber-500/10'
-                                        : 'border-slate-650 text-slate-500 bg-transparent hover:border-slate-500'
+                                    key={opt.id}
+                                    onClick={() => handleCardioModalityChange(ex.id, opt.id)}
+                                    class={c(\`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all cursor-pointer text-center \${
+                                      isSelected 
+                                        ? 'bg-amber-500 border-amber-400 text-slate-950 shadow-sm' 
+                                        : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:text-slate-200'
                                     }\`)}
                                   >
-                                    {sIdx + 1}
+                                    {opt.label}
                                   </button>
                                 );
                               })}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
 
+                        <div class="flex items-center space-x-3">
+                          {/* Carga Weight or Cardio Duration input box */}
+                          <div class="flex-1 bg-slate-900 rounded-lg p-2 border border-slate-700 flex flex-col">
+                            <label class="text-[9px] uppercase text-slate-500 font-bold">
+                              {ex.type === 'cardio' ? 'Tempo (min)' : 'Carga (kg)'}
+                            </label>
+                            <input 
+                              type="text" 
+                              inputMode="decimal"
+                              placeholder={ex.type === 'cardio' ? ex.reps.replace(' min', '') : '--'} 
+                              value={charges[ex.id] || ''} 
+                              onChange={(e) => handleChargeChange(ex.id, e.target.value)}
+                              class="bg-transparent text-sm font-bold text-white focus:outline-none w-full placeholder-slate-700"
+                            />
+                          </div>
+
+                          {/* Checklist circles counter for series */}
+                          <div class="flex space-x-1.5 items-center">
+                            {ex.type === 'mobility' || ex.type === 'cardio' ? (
+                              <button
+                                onClick={() => handleToggleSeries(ex.id, 0, 1)}
+                                class={c(\`px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 cursor-pointer uppercase \${
+                                  exSeries[0]
+                                    ? 'bg-amber-500 text-slate-950 border-amber-400'
+                                    : 'border-slate-600 text-slate-400 bg-transparent'
+                                }\`)}
+                              >
+                                {exSeries[0] ? '✓ Feito' : 'Concluir'}
+                              </button>
+                            ) : (
+                              <div class="flex space-x-1.5">
+                                {Array.from({ length: ex.series }).map((_, sIdx) => {
+                                  const isChecked = exSeries[sIdx] || false;
+                                  return (
+                                    <button
+                                      key={sIdx}
+                                      onClick={() => handleToggleSeries(ex.id, sIdx, ex.series)}
+                                      class={c(\`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold transition-all duration-300 cursor-pointer \${
+                                        isChecked
+                                          ? 'border-amber-500 text-amber-500 bg-amber-500/10'
+                                          : 'border-slate-650 text-slate-500 bg-transparent hover:border-slate-500'
+                                      }\`)}
+                                    >
+                                      {sIdx + 1}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                     </div>
