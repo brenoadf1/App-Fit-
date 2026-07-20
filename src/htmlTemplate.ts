@@ -50,6 +50,16 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
       background: #f59e0b;
       border-radius: 2px;
     }
+    @keyframes fall {
+      0% {
+        transform: translateY(-20px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(105vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-50 min-h-screen pb-32">
@@ -351,6 +361,43 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
         ]
       }
     ];
+
+    function ConfettiEffect({ theme }) {
+      const colors = theme === 'pink' 
+        ? ['#ec4899', '#f43f5e', '#d946ef', '#a855f7', '#6366f1', '#f472b6', '#fb7185'] 
+        : ['#f59e0b', '#fbbf24', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444'];
+        
+      const particles = Array.from({ length: 80 }).map((_, i) => {
+        const left = Math.random() * 100;
+        const delay = Math.random() * 4;
+        const duration = 3 + Math.random() * 4;
+        const size = 6 + Math.random() * 8;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const shape = Math.random() > 0.5 ? 'rounded-full' : 'rounded-sm';
+        const rotate = Math.random() * 360;
+        return { id: i, left, delay, duration, size, color, shape, rotate };
+      });
+
+      return (
+        <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          {particles.map((p) => (
+            <div
+              key={p.id}
+              class={\`absolute \${p.shape}\`}
+              style={{
+                left: \`\${p.left}%\`,
+                top: '-20px',
+                width: \`\${p.size}px\`,
+                height: \`\${p.size}px\`,
+                backgroundColor: p.color,
+                animation: \`fall \${p.duration}s linear \${p.delay}s infinite\`,
+                transform: \`rotate(\${p.rotate}deg)\`,
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
 
     function App() {
       const [currentDay, setCurrentDay] = useState('seg');
@@ -972,8 +1019,11 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
               onClick={() => setShowTaPagoModal(false)}
               class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer select-none"
             >
+              {/* Confetti falling across the entire modal viewport */}
+              <ConfettiEffect theme={theme} />
+
               <div 
-                class={c("bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.25)] relative overflow-hidden")}
+                class={c("bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.25)] relative overflow-hidden z-10")}
               >
                 {/* Decorative radial ambient glow */}
                 <div class={c("absolute -inset-10 bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-500/5 rounded-full blur-3xl pointer-events-none")}></div>
@@ -984,11 +1034,14 @@ export function generateSingleFileHtml(initialTheme: 'amber' | 'pink' = 'amber')
                     💪🏼
                   </div>
 
-                  <div class="flex flex-col gap-2">
+                  <div class="flex flex-col gap-3">
                     <h2 class={c("text-4xl font-black tracking-widest text-amber-500 font-sans uppercase")}>
                       TÁ PAGO
                     </h2>
-                    <p class="text-slate-400 text-sm font-medium tracking-wide">
+                    <div class={c("text-amber-400 font-serif italic text-xl font-bold tracking-wide")}>
+                      Parabéns, Piccola Mia! 🌸
+                    </div>
+                    <p class="text-slate-400 text-xs font-medium tracking-wide">
                       Treino de hoje concluído com sucesso!
                     </p>
                   </div>

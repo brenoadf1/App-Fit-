@@ -18,6 +18,55 @@ import {
 import { WORKOUT_DAYS } from './data';
 import { generateSingleFileHtml } from './htmlTemplate';
 
+function ConfettiEffect({ theme }: { theme: 'amber' | 'pink' }) {
+  const colors = theme === 'pink' 
+    ? ['#ec4899', '#f43f5e', '#d946ef', '#a855f7', '#6366f1', '#f472b6', '#fb7185'] 
+    : ['#f59e0b', '#fbbf24', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444'];
+    
+  const particles = Array.from({ length: 80 }).map((_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 4;
+    const duration = 3 + Math.random() * 4;
+    const size = 6 + Math.random() * 8;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const shape = Math.random() > 0.5 ? 'rounded-full' : 'rounded-sm';
+    const rotate = Math.random() * 360;
+    return { id: i, left, delay, duration, size, color, shape, rotate };
+  });
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <style>{`
+        @keyframes fall {
+          0% {
+            transform: translateY(-20px) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(105vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className={`absolute ${p.shape}`}
+          style={{
+            left: `${p.left}%`,
+            top: '-20px',
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            backgroundColor: p.color,
+            animation: `fall ${p.duration}s linear ${p.delay}s infinite`,
+            transform: `rotate(${p.rotate}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [currentDay, setCurrentDay] = useState<string>('seg');
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
@@ -795,16 +844,19 @@ export default function App() {
             onClick={() => setShowTaPagoModal(false)}
             className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer select-none"
           >
+            {/* Confetti falling across the entire modal viewport */}
+            <ConfettiEffect theme={theme} />
+
             <motion.div 
               initial={{ scale: 0.9, y: 20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
               transition={{ type: "spring", damping: 15, stiffness: 180 }}
-              className={c("bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.25)] relative overflow-hidden")}
+              className={c("bg-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.25)] relative overflow-hidden z-10")}
             >
               {/* Decorative radial ambient glow */}
               <div className={c("absolute -inset-10 bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-500/5 rounded-full blur-3xl pointer-events-none")}></div>
-
+ 
               <div className="relative z-10 flex flex-col items-center justify-center space-y-6">
                 {/* Floating bounce-effect emoji */}
                 <motion.div
@@ -821,16 +873,19 @@ export default function App() {
                 >
                   💪🏼
                 </motion.div>
-
-                <div className="space-y-2">
+ 
+                <div className="space-y-3">
                   <h2 className={c("text-4xl font-black tracking-widest text-amber-500 font-sans uppercase animate-pulse")}>
                     TÁ PAGO
                   </h2>
-                  <p className="text-slate-400 text-sm font-medium tracking-wide">
+                  <div className={c("text-amber-400 font-serif italic text-xl font-bold tracking-wide")}>
+                    Parabéns, Piccola Mia! 🌸
+                  </div>
+                  <p className="text-slate-400 text-xs font-medium tracking-wide">
                     Treino de hoje concluído com sucesso!
                   </p>
                 </div>
-
+ 
                 <div className="pt-4">
                   <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-800 text-xs text-slate-400 border border-slate-700/60 font-semibold animate-pulse">
                     Toque em qualquer lugar para fechar
